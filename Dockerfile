@@ -21,7 +21,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
  
 # Copy the application folder inside the container
-ADD . .
+COPY . .
  
 # Expose the port that the server will be listening on
 EXPOSE 8080
