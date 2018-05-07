@@ -1,7 +1,7 @@
 import json
 from flask import Flask,redirect,request
 
-APP = Flask(__name__)
+app = Flask(__name__)
 
 CONFIG = {}
 
@@ -17,15 +17,15 @@ OIDC_URL = CONFIG.get('oidc_url')
 REDIRECT_URL = CONFIG.get('redirect_url')
 CODE = CONFIG.get('response_code', 302)
 
-@APP.route("/")
+@app.route("/")
 def login():
     return redirect(OIDC_URL, code=int(CODE))
 
-@APP.route("/oidc")
+@app.route("/oidc")
 def oidc_callback():
     print(request.__dict__)
     #response = redirect(REDIRECT_URL, code=int(CODE))
     #response.headers = {'Authorization': f'Bearer {token}'}
 
 if __name__ == "__main__":
-    APP.run()
+    app.run()
