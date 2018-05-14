@@ -30,8 +30,7 @@ def oauth2callback():
 
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'settings/client_secret.json',
-        scopes=['https://www.googleapis.com/auth/admin.directory.group.readonly'],
-        state=state)
+        scopes=['https://www.googleapis.com/auth/admin.directory.group.readonly'])
     flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
 
     authorization_response = flask.request.url
