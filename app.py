@@ -26,8 +26,6 @@ def login():
 def oauth2callback():
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
-    state = flask.session['state']
-
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'settings/client_secret.json',
         scopes=['https://www.googleapis.com/auth/admin.directory.group.readonly'])
