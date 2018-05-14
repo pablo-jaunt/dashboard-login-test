@@ -1,6 +1,6 @@
 import json
 import flask
-import google_auth_oauthlib
+import google_auth_oauthlib.flow
 
 app = flask.Flask(__name__)
 
