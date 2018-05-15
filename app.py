@@ -31,8 +31,8 @@ def oauth2callback():
         scopes=['https://www.googleapis.com/auth/admin.directory.group.readonly'])
     flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
 
-    authorization_response = flask.request.url
-    flow.fetch_token(authorization_response=authorization_response)
+    #authorization_response = flask.request.url
+    flow.fetch_token(code=flask.request.args.get('code'))
 
     response = flask.redirect(REDIRECT_URL, code=int(CODE))
     response.headers = {'Authorization': f'Bearer {flow.credentials.token}'}
