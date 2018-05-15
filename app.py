@@ -22,7 +22,7 @@ CODE = CONFIG.get('response_code', 302)
 def login():
     return flask.redirect(OIDC_URL, code=int(CODE))
 
-@app.route("/oidc")
+@app.route("/oauth2callback")
 def oauth2callback():
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
