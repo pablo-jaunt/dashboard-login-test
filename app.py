@@ -1,6 +1,11 @@
 import json
 import flask
 import google_auth_oauthlib.flow
+import logging
+import sys
+log = logging.getLogger('oauthlib')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG)
 
 app = flask.Flask(__name__)
 
