@@ -27,9 +27,7 @@ app = flask.Flask(__name__)
 # Note: A secret key is included in the sample so that it works.
 # If you use this code in your application, replace this with a truly secret
 # key. See http://flask.pocoo.org/docs/0.12/quickstart/#sessions.
-app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
-
-app = flask.Flask(__name__)
+app.secret_key = b'U\x10\x0e\xb9\x7f\x90\xbd\x83\xda\xfd\xba\x7f\xbf\x90/J\xe9\x96\xe4P8\x128\xf8'
 
 CONFIG = {}
 
