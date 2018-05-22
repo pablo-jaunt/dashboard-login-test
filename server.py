@@ -4,9 +4,19 @@
 # Example:
 
 from app import app
+import json
 
 # Import CherryPy
 import cherrypy
+
+CONFIG = {}
+
+try:
+    with open('settings/config.json') as config_file:
+        CONFIG = json.load(config_file)
+except IOError:
+    print("No configuration found.  Exiting.")
+    raise
 
 if __name__ == '__main__':
 
@@ -26,8 +36,8 @@ if __name__ == '__main__':
 
     # For SSL Support
     server.ssl_module = 'builtin'
-    server.ssl_certificate = '/cert/tls.crt'
-    server.ssl_private_key = '/cert/tls.key'
+    server.ssl_certificate = CONFIG.get('tls_cert_file', 'cert/tls.crt')
+    server.ssl_private_key = CONFIG.get('tls_key_file', '/cert/tls.key')
     # server.ssl_certificate_chain = 'ssl/bundle.crt'
 
     # Subscribe this server
