@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 import flask
 import requests
@@ -19,15 +20,14 @@ CLIENT_SECRETS_FILE = "settings/client_secret.json"
 
 # This OAuth 2.0 access scope allows for full read/write access to the
 # authenticated user's account and requires requests to use an SSL connection.
-SCOPES = ['https://www.googleapis.com/auth/admin.directory.group.readonly']
-API_SERVICE_NAME = 'drive'
-API_VERSION = 'v2'
+SCOPES = ['email', 'profile']
 
 app = flask.Flask(__name__)
 # Note: A secret key is included in the sample so that it works.
 # If you use this code in your application, replace this with a truly secret
 # key. See http://flask.pocoo.org/docs/0.12/quickstart/#sessions.
-app.secret_key = b'U\x10\x0e\xb9\x7f\x90\xbd\x83\xda\xfd\xba\x7f\xbf\x90/J\xe9\x96\xe4P8\x128\xf8'
+app.secret_key = os.environ['OAUTH2_PROXY_COOKIE_SECRET']
+#b'U\x10\x0e\xb9\x7f\x90\xbd\x83\xda\xfd\xba\x7f\xbf\x90/J\xe9\x96\xe4P8\x128\xf8'
 
 CONFIG = {}
 
@@ -39,12 +39,50 @@ except IOError:
     raise
 
 NAME = CONFIG.get('domain_name')
-OIDC_URL = CONFIG.get('oidc_url')
-REDIRECT_URL = CONFIG.get('redirect_url')
-CODE = CONFIG.get('response_code', 302)
+UPSTREAM = CONFIG.get('upstream')
+SSL_VERIFY = CONFIG.get('ssl_verify', True)
+PASS_HOST_HEADER = CONFIG.get('pass_host_header', True)
 
-@app.route("/")
-def login():
+@app.route('/')
+def proxy():
+    """Proxy method, adapted from code by @marciogarcianubeliu"""
+    if 'credentials' not in flask.session:
+        return flask.redirect('authorize')
+
+    # Load credentials from the session.
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    request_headers = flask.request.headers
+    if not PASS_HOST_HEADER:
+        request_headers.pop('Host', None)
+    request_headers['Authorization'] = f'Bearer {credentials.id_token}'
+
+    try: 
+        response = requests.request(
+            method=flask.request.method,
+            url=UPSTREAM,
+            headers=request_headers,
+            data=flask.request.get_data(),
+            cookies=flask.request.cookies,
+            allow_redirects=False,
+            verify=SSL_VERIFY
+        )
+
+        log.debug(f'Proxied "{UPSTREAM}" with response: {response.status_code}')
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        headers = [(name, value) for (name, value) in response.raw.headers.items()
+                   if name.lower() not in excluded_headers]
+
+        response = flask.Response(response.content, response.status_code, headers)
+        return response
+
+    except Exception as exception:
+        log.error(exception)
+        return 'Error'
+
+@app.route("/authorize")
+def authorize():
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -60,7 +98,7 @@ def login():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-    return flask.redirect(authorization_url, code=int(CODE))
+    return flask.redirect(authorization_url)
 
 @app.route("/oauth2callback")
 def oauth2callback():
@@ -72,14 +110,31 @@ def oauth2callback():
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
     flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
 
-    #authorization_response = flask.request.url
     authorization_response = flask.request.url
     flow.fetch_token(authorization_response=authorization_response)
 
-    response = flask.redirect(REDIRECT_URL, code=int(CODE))
-    response.headers = {'Authorization': f'Bearer {flow.credentials.token}'}
+    #response = flask.redirect(REDIRECT_URL, code=int(CODE))
+    #response.headers = {'Authorization': f'Bearer {flow.credentials.token}'}
 
-    return response
+    # Store credentials in the session.
+    # ACTION ITEM: In a production app, you likely want to save these
+    #              credentials in a persistent database instead.
+    credentials = flow.credentials
+    flask.session['credentials'] = credentials_to_dict(credentials)
+
+    return flask.redirect(flask.url_for('entry'))
+
+@app.route("/ping")
+def ping():
+    return '{"status": "ok"}'
+
+def credentials_to_dict(credentials):
+  return {'token': credentials.token,
+          'refresh_token': credentials.refresh_token,
+          'token_uri': credentials.token_uri,
+          'client_id': credentials.client_id,
+          'client_secret': credentials.client_secret,
+          'scopes': credentials.scopes}
 
 if __name__ == "__main__":
     app.run()
